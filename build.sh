@@ -1,3 +1,3 @@
 #!/bin/bash
-docker build -t jfuhrmie/nginx .
+docker build -t jfuhrmie/nextcloud-arm .
 
