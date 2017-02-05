@@ -20,3 +20,8 @@ You can either build this with `./build` or if you choose to grab this directly 
 `docker run -it jfuhrmie/nextcloud-arm` both with work  
 
 ---
+
+NOTE:
+Only run `./build.sh` on an armhf machine, if you run this on a x86_64 system it will fail
+
+
