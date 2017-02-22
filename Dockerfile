@@ -1,45 +1,36 @@
-FROM jfuhrmie/nginxbase-arm
+FROM armhf/php:7.1-fpm
 
 LABEL version "1.0"
 LABEL maintainer "justin@fuhrmeister-clarke.com"
 LABEL description "A Docker Container for nextcloud"
 
-RUN apt-get -y update && apt-get install -y php5-gd php5-json php5-mysql php5-curl php5-intl php5-mcrypt php5-imagick php5-fpm wget gnupg lbzip2 php5-sqlite
+RUN apt-get update && apt-get install -y \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libpng12-dev \
+    && docker-php-ext-install -j$(nproc) iconv mcrypt \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd
+                                            
+                                            
 #RUN gem install jekyll bundler
 RUN mkdir -p /srv/http/nextcloud
 
-#COPY index.html /srv/http/index.html
-#COPY moby.svg /srv/http/moby.svg
 
-RUN wget https://nextcloud.com/nextcloud.asc; gpg --import nextcloud.asc
-
-RUN wget https://download.nextcloud.com/server/releases/nextcloud-11.0.1.tar.bz2; wget https://download.nextcloud.com/server/releases/nextcloud-11.0.1.tar.bz2.md5
-RUN wget https://download.nextcloud.com/server/releases/nextcloud-11.0.1.tar.bz2.asc; gpg --verify nextcloud-11.0.1.tar.bz2.asc nextcloud-11.0.1.tar.bz2
-
-RUN md5sum -c nextcloud-11.0.1.tar.bz2.md5 < nextcloud-11.0.1.tar.bz2
-
-RUN gpg --verify nextcloud-11.0.1.tar.bz2.asc nextcloud-11.0.1.tar.bz2
-RUN tar -xf nextcloud-11.0.1.tar.bz2
-
-RUN cp -r nextcloud /srv/http/
-
-RUN rm -Rf /nextcloud
-
-#RUN sed -i "s|root /srv/http/|root /srv/http/nextcloud/_site|g" /etc/nginx/sites-enabled/default
-COPY nextcloud.conf /etc/nginx/sites-available/default
-COPY nextcloud.conf /etc/nginx/sites-enabled/default
-
+COPY nextcloud /srv/http/nextcloud
 
 
 RUN chown www-data:www-data -R /srv/http
 RUN chmod g+wrs -R /srv/http
 
-COPY startup.sh /
-RUN chmod o+x /startup.sh
+COPY caddy_linux_arm7 /usr/bin/caddy
+VOLUME /root/.caddy
+VOLUME /srv/http/nextcloud/data/
+COPY Caddyfile /etc/Caddyfile
 
-EXPOSE 80 443
+EXPOSE 80 443 2015
 
-# ENTRYPOINT ["/usr/sbin/apachectl", "start"]
-ENTRYPOINT ["/startup.sh"]
-CMD ["/startup.sh"]
-
+WORKDIR /srv/http/nextcloud
+ENTRYPOINT ["/usr/bin/caddy"]
+CMD ["--conf", "/etc/Caddyfile", "--log", "stdout"]
